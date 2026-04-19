@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class PublicVoteRequest {
-    private int toSongId;
-    private int showId;
+public class LoginRequest {
+    private String username;
+    private String password;
 }

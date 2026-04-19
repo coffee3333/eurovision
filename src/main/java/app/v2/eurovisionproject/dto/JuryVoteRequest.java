@@ -9,8 +9,6 @@ import java.util.List;
 @Setter
 public class JuryVoteRequest {
 
-    private int jurorUserId;
-    private int fromCountryId;
     private int showId;
     private List<RankedVote> votes;
 

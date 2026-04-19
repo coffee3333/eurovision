@@ -22,7 +22,7 @@ public class Song {
     @JoinColumn(name = "artist_user_id")
     private User artist;
 
-    @ManyToOne
+    @ManyToOne // why here Many to One, not one to one
     @JoinColumn(name = "country_id")
     private Country country;
 }

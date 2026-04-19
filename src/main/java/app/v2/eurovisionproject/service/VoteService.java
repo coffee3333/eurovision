@@ -16,7 +16,6 @@ public class VoteService {
     private final JuryVoteRepository juryVoteRepo;
     private final PublicVoteRepository publicVoteRepo;
     private final UserRepository userRepo;
-    private final CountryRepository countryRepo;
     private final SongRepository songRepo;
     private final ShowRepository showRepo;
     private final ParticipationRepository participationRepo;
@@ -24,25 +23,26 @@ public class VoteService {
     public VoteService(JuryVoteRepository juryVoteRepo,
                        PublicVoteRepository publicVoteRepo,
                        UserRepository userRepo,
-                       CountryRepository countryRepo,
                        SongRepository songRepo,
                        ShowRepository showRepo,
                        ParticipationRepository participationRepo) {
         this.juryVoteRepo = juryVoteRepo;
         this.publicVoteRepo = publicVoteRepo;
         this.userRepo = userRepo;
-        this.countryRepo = countryRepo;
         this.songRepo = songRepo;
         this.showRepo = showRepo;
         this.participationRepo = participationRepo;
     }
 
-    public void submitJuryVotes(JuryVoteRequest request) {
-        User juror = userRepo.findById(request.getJurorUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + request.getJurorUserId()));
+    public void submitJuryVotes(JuryVoteRequest request, int userId) {
+        User jury = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        Country fromCountry = countryRepo.findById(request.getFromCountryId())
-                .orElseThrow(() -> new IllegalArgumentException("Country not found: " + request.getFromCountryId()));
+        if (!"JURY".equals(jury.getRole().getName())) {
+            throw new IllegalArgumentException("Only JURY users can submit jury votes");
+        }
+
+        Country fromCountry = jury.getCountry();
 
         Show show = showRepo.findById(request.getShowId())
                 .orElseThrow(() -> new IllegalArgumentException("Show not found: " + request.getShowId()));
@@ -66,7 +66,7 @@ public class VoteService {
                     .orElseThrow(() -> new IllegalArgumentException("Song not found: " + rv.getToSongId()));
 
             JuryVote vote = new JuryVote();
-            vote.setJurorUser(juror);
+            vote.setJuryUser(jury);
             vote.setFromCountry(fromCountry);
             vote.setToSong(toSong);
             vote.setShow(show);
@@ -76,12 +76,15 @@ public class VoteService {
         }
     }
 
-    public void submitPublicVote(PublicVoteRequest request) {
-        User voter = userRepo.findById(request.getVoterUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + request.getVoterUserId()));
+    public void submitPublicVote(PublicVoteRequest request, int userId) {
+        User voter = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        Country fromCountry = countryRepo.findById(request.getFromCountryId())
-                .orElseThrow(() -> new IllegalArgumentException("Country not found: " + request.getFromCountryId()));
+        if (!"PUBLIC".equals(voter.getRole().getName())) {
+            throw new IllegalArgumentException("Only PUBLIC users can submit public votes");
+        }
+
+        Country fromCountry = voter.getCountry();
 
         Song toSong = songRepo.findById(request.getToSongId())
                 .orElseThrow(() -> new IllegalArgumentException("Song not found: " + request.getToSongId()));

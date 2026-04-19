@@ -28,8 +28,8 @@ public class JuryVote {
     private int id;
 
     @ManyToOne
-    @JoinColumn(name = "juror_user_id")
-    private User jurorUser;
+    @JoinColumn(name = "jury_user_id")
+    private User juryUser;
 
     @ManyToOne
     @JoinColumn(name = "from_country_id")

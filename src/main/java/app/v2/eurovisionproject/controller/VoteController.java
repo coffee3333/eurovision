@@ -5,6 +5,7 @@ import app.v2.eurovisionproject.dto.PublicVoteRequest;
 import app.v2.eurovisionproject.service.VoteService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +21,8 @@ public class VoteController {
     @PostMapping("/jury")
     public ResponseEntity<?> submitJuryVotes(@RequestBody JuryVoteRequest request) {
         try {
-            voteService.submitJuryVotes(request);
+            int userId = (int) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            voteService.submitJuryVotes(request, userId);
             return ResponseEntity.ok("Jury votes submitted successfully");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -34,7 +36,8 @@ public class VoteController {
     @PostMapping("/public")
     public ResponseEntity<?> submitPublicVote(@RequestBody PublicVoteRequest request) {
         try {
-            voteService.submitPublicVote(request);
+            int userId = (int) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            voteService.submitPublicVote(request, userId);
             return ResponseEntity.ok("Public vote submitted successfully");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
