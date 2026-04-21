@@ -29,4 +29,7 @@ public class Show {
     @ManyToOne
     @JoinColumn(name = "show_type_id")
     private ShowType showType;
+
+    @Column(nullable = false)
+    private boolean votingOpen = false;
 }

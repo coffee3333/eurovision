@@ -59,6 +59,8 @@ public class DataInitializer implements CommandLineRunner {
         ShowType finalType = saveShowType("GRAND_FINAL");
 
         Show semiFinal1 = saveShow("Semi-Final 1", LocalDate.of(2026, 5, 12), 2026, sf1Type);
+        semiFinal1.setVotingOpen(true);
+        showRepo.save(semiFinal1);
         Show semiFinal2 = saveShow("Semi-Final 2", LocalDate.of(2026, 5, 14), 2026, sf2Type);
         Show grandFinal = saveShow("Grand Final",  LocalDate.of(2026, 5, 16), 2026, finalType);
 
@@ -154,7 +156,6 @@ public class DataInitializer implements CommandLineRunner {
         );
         for (Song s : sf1Songs) {
             addParticipation(s, semiFinal1);
-            addParticipation(s, grandFinal);
         }
 
         List<Song> sf2Songs = List.of(
@@ -164,7 +165,6 @@ public class DataInitializer implements CommandLineRunner {
         );
         for (Song s : sf2Songs) {
             addParticipation(s, semiFinal2);
-            addParticipation(s, grandFinal);
         }
 
         saveUser("jury_de", germany, juryRole);
@@ -240,6 +240,12 @@ public class DataInitializer implements CommandLineRunner {
         saveUser("public_az", azerbaijan,  publicRole);
         saveUser("public_gr", greece,      publicRole);
         saveUser("public_al", albania,     publicRole);
+
+        User admin = new User();
+        admin.setUsername("admin");
+        admin.setPasswordHash("admin123");
+        admin.setRole(adminRole);
+        userRepo.save(admin);
     }
 
     private CountryType saveCountryType(String name) {

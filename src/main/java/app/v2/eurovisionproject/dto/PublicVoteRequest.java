@@ -7,5 +7,4 @@ import lombok.Setter;
 @Setter
 public class PublicVoteRequest {
     private int toSongId;
-    private int showId;
 }

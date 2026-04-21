@@ -44,8 +44,8 @@ public class VoteService {
 
         Country fromCountry = jury.getCountry();
 
-        Show show = showRepo.findById(request.getShowId())
-                .orElseThrow(() -> new IllegalArgumentException("Show not found: " + request.getShowId()));
+        Show show = showRepo.findByVotingOpenTrue()
+                .orElseThrow(() -> new IllegalArgumentException("No show is currently open for voting"));
 
         if (request.getVotes() == null || request.getVotes().size() != 10) {
             throw new IllegalArgumentException("Jury must submit exactly 10 ranked votes");
@@ -64,6 +64,12 @@ public class VoteService {
         for (JuryVoteRequest.RankedVote rv : request.getVotes()) {
             Song toSong = songRepo.findById(rv.getToSongId())
                     .orElseThrow(() -> new IllegalArgumentException("Song not found: " + rv.getToSongId()));
+
+            if (!participationRepo.existsByShowAndSong(show, toSong)) {
+                throw new IllegalArgumentException(
+                        "Song '" + toSong.getTitle() + "' does not participate in: " + show.getName()
+                );
+            }
 
             JuryVote vote = new JuryVote();
             vote.setJuryUser(jury);
@@ -89,8 +95,24 @@ public class VoteService {
         Song toSong = songRepo.findById(request.getToSongId())
                 .orElseThrow(() -> new IllegalArgumentException("Song not found: " + request.getToSongId()));
 
-        Show show = showRepo.findById(request.getShowId())
-                .orElseThrow(() -> new IllegalArgumentException("Show not found: " + request.getShowId()));
+        Show show = showRepo.findByVotingOpenTrue()
+                .orElseThrow(() -> new IllegalArgumentException("No show is currently open for voting"));
+
+        if (!participationRepo.existsByShowAndCountry(show, fromCountry)) {
+            throw new IllegalArgumentException(
+                    "Your country (" + fromCountry.getName() + ") does not participate in: " + show.getName()
+            );
+        }
+
+        if (!participationRepo.existsByShowAndSong(show, toSong)) {
+            throw new IllegalArgumentException(
+                    "Song '" + toSong.getTitle() + "' does not participate in: " + show.getName()
+            );
+        }
+
+        if (toSong.getCountry().getId() == fromCountry.getId()) {
+            throw new IllegalArgumentException("You cannot vote for your own country's song");
+        }
 
         PublicVote vote = new PublicVote();
         vote.setVoterUser(voter);

@@ -21,15 +21,18 @@ public class JwtUtil {
     }
 
     public String generateToken(User user) {
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("username", user.getUsername())
                 .claim("role", user.getRole().getName())
-                .claim("countryId", user.getCountry().getId())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(key)
-                .compact();
+                .expiration(new Date(System.currentTimeMillis() + 86400000));
+
+        if (user.getCountry() != null) {
+            builder.claim("countryId", user.getCountry().getId());
+        }
+
+        return builder.signWith(key).compact();
     }
 
     public boolean validateToken(String token) {
