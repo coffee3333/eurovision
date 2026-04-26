@@ -13,6 +13,9 @@ import java.util.stream.Collectors;
 @Service
 public class VoteService {
 
+    private static final Set<Integer> BIG5_AND_HOST_IDS = Set.of(1, 2, 3, 4, 5, 6); // DE, FR, GB, IT, ES, AT
+    private static final int REST_OF_WORLD_COUNTRY_ID = 37;
+
     private final JuryVoteRepository juryVoteRepo;
     private final PublicVoteRepository publicVoteRepo;
     private final UserRepository userRepo;
@@ -61,6 +64,14 @@ public class VoteService {
             }
         }
 
+        boolean juryIsCompetitor = participationRepo.existsByShowAndCountry(show, fromCountry);
+        boolean juryIsBig5OrHost = BIG5_AND_HOST_IDS.contains(fromCountry.getId());
+        if (!juryIsCompetitor && !juryIsBig5OrHost) {
+            throw new IllegalArgumentException(
+                    "Your country (" + fromCountry.getName() + ") is not eligible to vote in: " + show.getName()
+            );
+        }
+
         for (JuryVoteRequest.RankedVote rv : request.getVotes()) {
             Song toSong = songRepo.findById(rv.getToSongId())
                     .orElseThrow(() -> new IllegalArgumentException("Song not found: " + rv.getToSongId()));
@@ -69,6 +80,10 @@ public class VoteService {
                 throw new IllegalArgumentException(
                         "Song '" + toSong.getTitle() + "' does not participate in: " + show.getName()
                 );
+            }
+
+            if (toSong.getCountry().getId() == fromCountry.getId()) {
+                throw new IllegalArgumentException("You cannot vote for your own country's song");
             }
 
             JuryVote vote = new JuryVote();
@@ -98,9 +113,12 @@ public class VoteService {
         Show show = showRepo.findByVotingOpenTrue()
                 .orElseThrow(() -> new IllegalArgumentException("No show is currently open for voting"));
 
-        if (!participationRepo.existsByShowAndCountry(show, fromCountry)) {
+        boolean isCompetitor = participationRepo.existsByShowAndCountry(show, fromCountry);
+        boolean isBig5OrHost = BIG5_AND_HOST_IDS.contains(fromCountry.getId());
+        boolean isRestOfWorld = fromCountry.getId() == REST_OF_WORLD_COUNTRY_ID;
+        if (!isCompetitor && !isBig5OrHost && !isRestOfWorld) {
             throw new IllegalArgumentException(
-                    "Your country (" + fromCountry.getName() + ") does not participate in: " + show.getName()
+                    "Your country (" + fromCountry.getName() + ") is not eligible to vote in: " + show.getName()
             );
         }
 
@@ -177,26 +195,27 @@ public class VoteService {
     }
 
     private Map<Integer, Integer> calculatePublicPoints(Show show, List<Song> songs) {
-        Map<Integer, Long> voteCounts = new HashMap<>();
-        for (Song song : songs) {
-            long count = publicVoteRepo.countByToSongAndShow(song, show);
-            voteCounts.put(song.getId(), count);
-        }
+        List<PublicVote> allVotes = publicVoteRepo.findByShow(show);
 
-        List<Map.Entry<Integer, Long>> ranked = new ArrayList<>(voteCounts.entrySet());
-        ranked.sort(Map.Entry.<Integer, Long>comparingByValue().reversed());
+        Map<Integer, List<PublicVote>> byCountry = allVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getFromCountry().getId()));
 
-        Map<Integer, Integer> points = new HashMap<>();
-        int[] pointScale = {12, 10, 8, 7, 6, 5, 4, 3, 2, 1};
+        Map<Integer, Integer> totalPoints = new HashMap<>();
+        int[] scale = {12, 10, 8, 7, 6, 5, 4, 3, 2, 1};
 
-        for (int i = 0; i < Math.min(ranked.size(), 10); i++) {
-            int songId = ranked.get(i).getKey();
-            long votes = ranked.get(i).getValue();
-            if (votes > 0) {
-                points.put(songId, pointScale[i]);
+        for (List<PublicVote> countryVotes : byCountry.values()) {
+            Map<Integer, Long> songCounts = countryVotes.stream()
+                    .collect(Collectors.groupingBy(v -> v.getToSong().getId(), Collectors.counting()));
+
+            List<Map.Entry<Integer, Long>> ranked = new ArrayList<>(songCounts.entrySet());
+            ranked.sort(Map.Entry.<Integer, Long>comparingByValue().reversed());
+
+            for (int i = 0; i < Math.min(ranked.size(), 10); i++) {
+                if (ranked.get(i).getValue() > 0) {
+                    totalPoints.merge(ranked.get(i).getKey(), scale[i], Integer::sum);
+                }
             }
         }
-
-        return points;
+        return totalPoints;
     }
 }

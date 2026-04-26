@@ -142,6 +142,9 @@ public class DataInitializer implements CommandLineRunner {
         Song songGR = saveSong("Asteromata", greece, artistRole);
         Song songAL = saveSong("Zjerm", albania, artistRole);
 
+        Country restOfWorld = saveCountry("Rest of World", "ROW", nonParticipant);
+        saveUser("public_row", restOfWorld, publicRole);
+
         addParticipation(songDE, grandFinal);
         addParticipation(songFR, grandFinal);
         addParticipation(songGB, grandFinal);
